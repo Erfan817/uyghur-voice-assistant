@@ -4,50 +4,121 @@
 
 <h1 align="center">Aynur · ئاينۇر</h1>
 
-给家里长辈用的维吾尔语 AI 对话助手</
+<p align="center"><sub>给家里长辈用的维吾尔语 AI 对话助手</sub></p>
 
 <p align="center"><b>按下说话，松开就答。</b></p>
 
 <p align="center">
-  <a href="https://github.com/Erfan817/uyghur-voice-assistant"><img src="https://img.shields.io/badge/%E7%8A%B6%E6%80%81-%E8%A7%84%E5%88%92%E4%B8%AD-yellow?style=flat-square" alt="状态：规划中"></a>
+  <a href="notes/decisions.md"><img src="https://img.shields.io/badge/%E7%8A%B6%E6%80%81-v0.1%20%E5%8F%AF%E8%BF%90%E8%A1%8C%E5%8E%9F%E5%9E%8B-brightgreen?style=flat-square" alt="状态：v0.1 可运行原型"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-blue?style=flat-square" alt="许可：MIT"></a>
-  <a href="https://github.com/Erfan817/uyghur-voice-assistant"><img src="https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Android-3DDC84?style=flat-square" alt="平台：Android"></a>
-  <a href="https://github.com/Erfan817/uyghur-voice-assistant"><img src="https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-%E7%BB%B4%E5%90%BE%E5%B0%94%E8%AF%AD%C2%B7%E4%B8%AD%E6%96%87-9cf?style=flat-square" alt="语言：维吾尔语 · 中文"></a>
+  <a href="#技术架构"><img src="https://img.shields.io/badge/%E5%BD%A2%E6%80%81-PWA%20%C2%B7%20%E5%AE%89%E5%8D%93%E5%8F%AF%E5%AE%89%E8%A3%85-3DDC84?style=flat-square" alt="形态：PWA · 安卓可安装"></a>
+  <a href="#还差哪一步"><img src="https://img.shields.io/badge/%E7%BB%B4%E8%AF%AD%20TTS-%E4%BB%8D%E6%98%AF%E6%9C%AA%E8%A7%A3%E9%A1%B9-orange?style=flat-square" alt="维语 TTS 仍是未解项"></a>
 </p>
 
-> **状态：规划阶段（2026-10）· 代码未开始** · 规划文档见 [`notes/`](notes/README.md)
+> **状态（2026-10-17）**：服务端 + PWA 客户端已经能跑，41 个测试通过。
+> 没有 API key 时进入**演示模式**（脚本回复 + 中文语音）；配一个 OpenAI 兼容的 key 就切成**在线模式**。
+> 维语 TTS 仍没有可用的商用 API，这是目前唯一的产品级缺口。
+
+<p align="center">
+  <img src="notes/img/shot-main.png" width="290" alt="主界面：按住说话">
+  <img src="notes/img/shot-turn.png" width="290" alt="对话：大字维语 + 中文对照">
+</p>
 
 <details>
 <summary><b>目录</b></summary>
 
+- [三句话](#三句话)
+- [现在能跑什么](#现在能跑什么)
+- [快速开始](#快速开始)
+- [演示模式与在线模式](#演示模式与在线模式)
 - [名称](#名称)
 - [为什么做这个](#为什么做这个)
 - [目标用户](#目标用户)
 - [产品原则](#产品原则)
 - [技术架构](#技术架构)
 - [组件选型](#组件选型)
+- [还差哪一步](#还差哪一步)
+- [M0 评测流程](#m0-评测流程)
 - [里程碑](#里程碑)
-- [评测方案](#评测方案)
 - [风险](#风险)
 - [非目标](#非目标)
 - [与后续项目的关系](#与后续项目的关系)
+- [目录结构](#目录结构)
 - [规划文档](#规划文档)
 
 </details>
 
 ---
 
-### 三句话了解这个项目
+## 三句话
 
 | | |
 |---|---|
-| **给谁** | 家里 40–80 岁、只会说维语的长辈 |
-| **做什么** | 按住说话 → 维语识别 → 维语回答，能连续对话，不要求识字 |
-| **怎么验证** | 先跑通"家人的语音能不能被识别对"，再谈产品 |
+| **给谁** | 家里 40–80 岁、母语是维语、不认汉字的长辈 |
+| **做什么** | 按住说话 → 维语识别 → 维语回答并读出来，能连续对话，不要求识字 |
+| **怎么验证** | 先跑通"家人的语音能不能被识别对、回答能不能听懂"，再谈产品 |
 
 ---
 
-## 名字
+## 现在能跑什么
+
+- **按住说话**：大字界面、维语优先、RTL；浏览器里直接录成 16k 单声道 WAV
+- **一轮完整链路**：ASR → 规范化 → 安全路由 → LLM → 维语文本 → 语音（文字先出，语音后到，不阻塞）
+- **打开问候**：当天第一次打开，说一句问候 + 真实天气（Open-Meteo，免 key）
+- **记得住**：称呼、城市、年龄、健康注意、家里人；随时一键清空
+- **安全兜底**：紧急 / 医疗 / 宗教 / 政策四类，命中就不让模型自由发挥；输出还会再检一遍
+- **成本控制**：每日对话上限、TTS 按文本 hash 缓存、失败清单、诊断导出
+- **家人设置**：中文设置页，长按头像 1.8 秒打开，长辈看不到
+- **PWA**：手机浏览器打开 → 添加到主屏幕 → 全屏运行，不用装 APK
+
+---
+
+## 快速开始
+
+```powershell
+# Windows 一键
+.\scripts\start.ps1
+```
+
+或者手动：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn server.main:app --host 0.0.0.0 --port 8000
+```
+
+打开 <http://127.0.0.1:8000>。**第一次请用 Chrome / Edge，不要用微信内置浏览器**（微信会拦麦克风）。
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest        # 41 个测试
+.\.venv\Scripts\python.exe scripts\smoke.py # 打一遍真实接口
+```
+
+---
+
+## 演示模式与在线模式
+
+| | 演示模式 | 在线模式 |
+|---|---|---|
+| 触发 | 没有 `AYNUR_LLM_API_KEY` | 配了任意 OpenAI 兼容 key |
+| 回复 | 脚本（按关键词） | 真模型 |
+| 语音 | 中文 TTS（Edge，失败回落离线 SAPI） | 有维语 TTS 才出声，否则只显示文字 |
+| 用途 | 看交互、做 UI 验收、离线演示 | 真用 |
+
+切在线只需要三行：
+
+```powershell
+$env:AYNUR_LLM_BASE_URL="https://api.deepseek.com/v1"
+$env:AYNUR_LLM_API_KEY="sk-..."
+$env:AYNUR_LLM_MODEL="deepseek-chat"
+```
+
+也可以直接在设置页里填，存到 `data/settings.json`。
+
+---
+
+## 名称
 
 **Aynur（ئاينۇر）**：ay（月亮）+ nur（光），维吾尔族最常见的女性名之一——月光。
 
@@ -58,6 +129,8 @@
 > **青年女性 · 语速偏慢 · 语气温和 · 不抢话**
 
 TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot 克隆，比任何"标准播音腔"都更容易被接受。
+
+> ⚠️ 人设年龄目前两处不一致：README 写青年女性，[`notes/persona.md`](notes/persona.md) 和系统提示词仍写中年女性（"大姐/姑姑"）。需要拍一下，见 [决策记录](notes/decisions.md) 的待定项。
 
 ---
 
@@ -72,7 +145,7 @@ TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot
 | 底层能力 | 可用零件 |
 |---|---|
 | 维语 ASR | 阿里云智能语音（通用-维吾尔语）、讯飞 |
-| 维语 TTS | `qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B` |
+| 维语 TTS | `qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B`（开源权重，要自己部署） |
 | 维语语义 | CINO（哈工大讯飞联合实验室） |
 
 **缺的不是模型能力，是把它们组装成一个能连续对话的产品。**
@@ -100,8 +173,8 @@ TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot
 ## 产品原则
 
 1. **三个动作以内说完一句话** —— 打开 → 按住 → 说完
-2. **语音进、语音出** —— 屏幕上的字只是辅助，不要求阅读
-3. **打开就能用** —— 不登录、不设置、不选音色、不填 API Key
+2. **语音进、语音出** —— 屏幕上的字是辅助，但维文对识字的维吾尔族长辈其实是**信任来源**（让他们看见"我听成了什么"）
+3. **打开就能用** —— 对使用者零设置；对安装的家人，一次配置（称呼、城市、模型）
 4. **大** —— 大按钮、大字体、高对比度；按下有"我在听"的明确反馈
 5. **窄** —— 不追求全能，先把 5 件高频事做好；答不上来就说答不上来
 
@@ -109,56 +182,86 @@ TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot
 
 ## 技术架构
 
-两条候选链路，先用真实问题做 A/B，再定。
-
-### 方案 A · 直连
-
 ```mermaid
 flowchart LR
-    A[维语语音] --> B[维语 ASR]
-    B --> C[LLM 直接用维语回答]
-    C --> D[维语 TTS]
-    D --> E[播放]
+    A[手机 PWA<br/>按住说话] -->|WAV 16k| B[FastAPI]
+    B --> C[ASR]
+    C --> D[文字规范化]
+    D --> E{安全路由}
+    E -->|紧急 / 医疗 / 宗教| F[兜底话术]
+    E -->|正常| G[LLM 或 翻译中转]
+    G --> H[输出后检]
+    H --> I[维语文本]
+    I --> J[TTS + 缓存]
+    J --> A
 ```
 
-链路短、延迟低；但通用 LLM 的维语能力弱，容易夹汉语词、语序怪、术语崩。
+四条件选链路（`AYNUR_ARM`），用于 M0 对比：
 
-### 方案 B · 汉语中转（pivot）
-
-```mermaid
-flowchart LR
-    A[维语语音] --> B[维语 ASR]
-    B --> C[维→汉翻译]
-    C --> D[LLM 用汉语推理与回答]
-    D --> E[汉→维翻译]
-    E --> F[维语 TTS]
-    F --> G[播放]
-```
-
-链路长、延迟高；但每一环的质量都能单独调，且能复用成熟的中文能力与提示词。
-
-| 维度 | 方案 A · 直连 | 方案 B · 中转 |
+| 链路 | 走法 | 适合 |
 |---|---|---|
-| 链路 | ASR → LLM → TTS | ASR → 翻译 → LLM → 翻译 → TTS |
-| 端到端延迟（预估） | ≈ 3 秒 | ≈ 5 秒 |
-| 强项 | 短句、闲聊、反应快 | 事实与复杂句更准 |
-| 弱项 | 通用 LLM 维语容易夹汉语词、语序怪 | 链路长、延迟高 |
+| `A` | ASR → LLM 直出维语 → TTS | 短句、闲聊，最快 |
+| `A'`（默认） | A + 人设提示词 + 术语表 | 语气和称呼最重要时 |
+| `B1` | ASR → 维→汉 → 中文推理 → 汉→维 → TTS | 事实类问题，可懂性优先 |
+| `B2` | 同 B1，但翻译也用同一个 LLM | 不想多接一家供应商时 |
 
-**决策方式**：拿 20 个家里人真会问的问题跑两条链路，3 位母语者盲听打分，选可懂性和自然度综合更高的那条。这一步的结果同时决定了整个项目的技术路线。
+原始的两条候选路线（直连 / 中转）的取舍没有变，只是现在都实现了：
+
+- **方案 A · 直连**：链路短、延迟低；通用 LLM 的维语容易夹汉语词、语序怪
+- **方案 B · 汉语中转**：链路长、延迟高；但每一环能单独调，能复用成熟的中文能力
+
+真正的区别在盲评里——见 [M0 评测流程](#m0-评测流程)。
 
 ---
 
 ## 组件选型
 
-| 环节 | 候选 | 备注 |
+| 环节 | 已实现 | 备注 |
 |---|---|---|
-| 维语 ASR | 阿里云智能语音（控制台可选维语）、讯飞 | 商用 API，按量计费；开源方案对维语支持差 |
-| 维→汉 / 汉→维 翻译 | Qwen3、Hunyuan-MT-7B、DeepSeek | 需实测；维语 SOV 语序与汉语 SVO 差异大，直译会出戏 |
-| 对话 LLM | Qwen3 / DeepSeek | 中文能力强；维语直接生成质量待评 |
-| 维语 TTS | `anke01/qwen3-tts-uyghur`、`ElgekAI/SLED-TTS-Uyghur-UAS-0.2B` | 后者支持 zero-shot 音色克隆，可做"熟悉的声音" |
-| 客户端 | 安卓 Kotlin 或 Flutter | 首版只做安卓；PWA 作为退路 |
-| 服务端 | 轻量 Python 服务（FastAPI） | 转发 ASR/LLM/TTS，管理提示词与兜底 |
+| 维语 ASR | `aliyun`（ISI 维语一句话识别）、`http`、`mock` | 阿里云要 AK/SK 在服务端换 token，24h 过期 |
+| 对话 LLM | 任意 OpenAI 兼容 | DeepSeek / DashScope / SiliconFlow 都行 |
+| 维→汉 / 汉→维 | 任意 OpenAI 兼容（如 Hunyuan-MT） | B1 用，可不配，自动退回 B2 |
+| 维语 TTS | `edge`（中文）、`sapi`（离线中文）、`http`（自建维语） | 维语音色一配就自动切过去 |
+| 客户端 | PWA（Vanilla JS + WebAudio） | 免安装、可添加到主屏幕；将来要 APK 再包 WebView |
+| 服务端 | FastAPI + SQLite | 一个进程同时管 API、页面、音频缓存 |
 | 部署 | 一台小云主机 | 国内节点，降低往返延迟 |
+
+Provider 全部可替换，见 `server/providers/`。
+
+---
+
+## 还差哪一步
+
+**维语 TTS 没有现成的商用 API。** 这是当前产品最硬的缺口：
+
+- 千问云 / Qwen3 系列的语音模型，语言列表里没有维吾尔语（2026-10-17 实查）
+- Edge TTS 的 93 个音色里没有 `ug-`
+- 开源的 `qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B` 要自己部署，和"不自托管、50 元/月"的红线冲突
+
+三条路都在代码里留好了接口：
+
+1. **找到维语 TTS 的 API**（讯飞翻译机能维汉互译并朗读，值得发一张工单）→ 填 `AYNUR_TTS_URL` + `AYNUR_TTS_VOICE_UG`
+2. **固定话术人声录制**（问候、天气、兜底、高频回答）→ 放进静态音频，动态回答只给文字
+3. **接受文字回答**（长辈认维吾尔文，不认汉字）→ 把"我听成了什么"做成大字维文 + 重说按钮
+
+---
+
+## M0 评测流程
+
+对应 [`notes/m0-protocol.md`](notes/m0-protocol.md)，分两段。**先测文本，再测音频**——文本不过关的链路不值得合成语音。
+
+```powershell
+# T0：四条链路跑 20 题，产出纯文本
+.\.venv\Scripts\python.exe eval\run_ab.py --arms "A,A',B1,B2"
+
+# 生成盲评表（随机编号，评分人看不到链路名）
+.\.venv\Scripts\python.exe eval\blind.py data\eval\run-xxxx.jsonl
+
+# 评分人填完 score_understand / score_natural / score_persona / correct 后揭盲
+.\.venv\Scripts\python.exe eval\summarize.py data\eval\blind.csv data\eval\blind-key.json
+```
+
+通过线：ASR 纯维语 WER < 10%、混说 < 20%；盲听可懂性 ≥ 4.0；TTS 可懂性 ≥ 4.0；月成本 ≤ 50 元。
 
 ---
 
@@ -166,23 +269,28 @@ flowchart LR
 
 ### M0 · 链路验证（1 周）
 
-- [ ] 20 个真实问题的语料集（家里人实际会问的）
-- [ ] 跑通 ASR → LLM → TTS 的最小链路（不做 UI）
-- [ ] 方案 A / B 对比，母语者盲听打分
-- [ ] **决策点：翻译质量过不了关就停，不往下做**
+- [x] 20 题语料模板（[`corpus/questions.csv`](corpus/questions.csv)，待替换成长辈原话）
+- [x] 最小链路 + 四条可切换的臂
+- [x] 盲评工具（随机编号、揭盲汇总）
+- [ ] 真实录音与转写（**卡在这一步**）
+- [ ] ASR 三供应商 WER 实测
+- [ ] 盲听评分与决策记录
+- [ ] **决策点：可懂性过不了线就停，不往下做**
 
 ### M1 · 可用的 MVP（3–4 周）
 
-- [ ] 安卓 App：单页、大按钮、按住说话、自动播放
-- [ ] 首次启动 3 步内可用（无登录）
-- [ ] 兜底策略：医疗/宗教/政策类问题的安全回复模板
-- [ ] 延迟优化到 3 秒内，超时给"我在想"的反馈音
+- [x] 单页、大按钮、按住说话、自动播放
+- [x] 首次打开即可用（无登录）
+- [x] 医疗/宗教/政策/紧急兜底
+- [x] 文字先出、语音后到（避免 TTS 拖垮整轮延迟）
+- [x] 维语 TTS 接入点（等供给）
+- [ ] 装到安卓主屏幕，走完真实设备验收
 
 ### M2 · 家里人试用（2 周）
 
 - [ ] 装到 2–3 台家人的手机上
 - [ ] 记录：每天用几次、问什么、哪里卡住、哪句听不懂
-- [ ] 建立"失败问题清单"，按频次排序
+- [ ] 建立"失败问题清单"，按频次排序（设置页已能导出）
 
 ### M3 · 迭代（持续）
 
@@ -192,26 +300,16 @@ flowchart LR
 
 ---
 
-## 评测方案
-
-| 项目 | 做法 |
-|---|---|
-| 语料 | 20 个真实问题，覆盖天气、健康、家常、办事、内容朗读五类 |
-| 评审 | 3 位维语母语者（含家里长辈）盲听，不知道哪条是 A 哪条是 B |
-| 指标 | 可懂性（1–5）、自然度（1–5）、回答正确率、端到端延迟（秒） |
-| 记录 | 每条回答录音留档，错误逐句标注（语序错 / 夹汉语词 / 术语错 / 答非所问） |
-
----
-
 ## 风险
 
 | 风险 | 说明 | 对策 |
 |---|---|---|
-| **延迟** | 方案 B 四跳 + 新疆到内地云往返，可能 3–5 秒；长辈对"没反应"的容忍度极低 | 即时反馈音、流式播放、国内节点 |
-| **内容安全** | 一定会被问医疗、宗教、政策，通用模型会编 | 分类兜底；医疗只给"建议问医生"+ 常识，不编剂量和诊断 |
-| **隐私** | 语音要上传云端做 ASR（维语本地 ASR 目前效果差） | 明确告知家人，不上传无关内容，不留存原始音频 |
-| **方言覆盖** | 维语分中心、和田、罗布泊等方言，长辈口音可能不在训练数据里 | 用真实家人语音测 ASR 识别率，再定是否微调 |
-| **成本** | 一次对话 3–4 次 API 调用，高频使用约每月十几到几十元 | 设用量上限 + TTS 缓存 |
+| **维语 TTS 供给** | 没有商用 API，开源权重又要自托管 | 三条路：找 API / 固定话术人声 / 只给文字 |
+| **延迟** | 中转路线四跳 + 新疆到内地云往返 | 文字先出、语音后到；TTS 缓存；国内节点 |
+| **内容安全** | 一定会被问医疗、宗教、政策，通用模型会编 | 分类兜底 + 输出后检；医疗不给剂量和诊断 |
+| **隐私** | 语音要上传云端做 ASR | 原始音频不进库、ASR 完即删；明确告知家人 |
+| **方言覆盖** | 中心 / 和田 / 罗布泊口音可能不在训练数据里 | 用真实家人语音测 WER，再定是否微调 |
+| **成本** | 一次对话 3–4 次 API 调用 | 每日上限 + TTS 缓存 + 预算告警 |
 
 ---
 
@@ -231,13 +329,36 @@ flowchart LR
 
 ---
 
+## 目录结构
+
+```
+server/
+  main.py          FastAPI：API + 静态页面 + 音频
+  pipeline.py      一轮对话的完整链路（A / A' / B1 / B2）
+  config.py        配置（env + data/settings.json）
+  persona.py       人设、话术模板、术语表、城市维语名
+  safety.py        意图分类 + 输出后检
+  normalize.py     维语规范化、WER/CER
+  memory.py        SQLite：会话 / 档案 / 失败清单 / 用量
+  weather.py       天气（Open-Meteo，免 key）
+  providers/       ASR / LLM / TTS / MT 适配层
+  static/          PWA 客户端（含 icon、manifest、service worker）
+tests/             41 个测试
+corpus/            20 题模板 + 录音转写说明
+eval/              T0 盲评工具（run_ab / blind / summarize）
+scripts/           start.ps1、smoke.py、probe_net.py
+notes/             规划文档 + 截图
+```
+
+---
+
 ## 规划文档
 
 | 文档 | 内容 |
 |---|---|
 | [`notes/decisions.md`](notes/decisions.md) | 已定决策、选型核实记录、成本结构 |
-| [`notes/persona.md`](notes/persona.md) | Aynur 人设卡 v1 |
-| [`notes/m0-protocol.md`](notes/m0-protocol.md) | M0 链路验证协议（一周版） |
+| [`notes/persona.md`](notes/persona.md) | Aynur 人设卡 |
+| [`notes/m0-protocol.md`](notes/m0-protocol.md) | M0 链路验证协议（T0 / T1 两段） |
 | [`notes/README.md`](notes/README.md) | 索引与待补清单 |
 
 ---

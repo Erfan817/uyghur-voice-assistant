@@ -6,6 +6,7 @@ env/
 *.egg-info/
 .env
 *.log
+.pytest_cache/
 
 # Android / Gradle
 .gradle/
@@ -29,5 +30,8 @@ captures/
 # 本地数据与录音（隐私相关，绝不入库）
 data/
 recordings/
+*.db
+*.db-wal
+*.db-shm
 *.wav
 *.m4a

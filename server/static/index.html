@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ug" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#F6F1E4" />
+  <meta name="description" content="Aynur — 给家里的维吾尔语长辈用的语音陪伴助手" />
+  <title>ئاينۇر · Aynur</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <button class="avatar" id="avatar" aria-label="Aynur" title="Aynur">
+        <img src="/avatar.png" alt="" />
+      </button>
+      <div class="brand">
+        <h1>ئاينۇر</h1>
+        <p class="badge" id="badge">…</p>
+      </div>
+      <button class="ghost tiny" id="openSettings" aria-label="设置">⋯</button>
+    </header>
+
+    <section class="stage">
+      <p class="greeting" id="greeting">ياخشىمۇسىز</p>
+
+      <article class="card transcript hidden" id="transcriptCard">
+        <span class="label">سىز</span>
+        <p class="transcript-text" id="transcript"></p>
+        <p class="zh" id="transcriptZh"></p>
+      </article>
+
+      <article class="card reply hidden" id="replyCard">
+        <span class="label">ئاينۇر</span>
+        <p class="reply-text" id="reply"></p>
+        <p class="zh" id="replyZh"></p>
+      </article>
+
+      <p class="status" id="status">بېسىپ سۆزلەڭ · 按住说话</p>
+    </section>
+
+    <footer class="dock">
+      <div class="secondary">
+        <button class="ghost hidden" id="replay">يەنە ئاڭلاڭ</button>
+        <button class="ghost hidden" id="askFamily">ئائىلەمدىكىلەردىن سورايمەن</button>
+      </div>
+
+      <button class="talk" id="talk" aria-label="按住说话">
+        <span class="talk-ring"></span>
+        <span class="talk-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="46" height="46">
+            <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5.5A3.5 3.5 0 0 0 12 15z" fill="currentColor"/>
+            <path d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v3.5M9 20.5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </button>
+      <p class="hint" id="hint">بېسىپ تۇرۇپ سۆزلەڭ، قويۇۋەتسىڭىز جاۋاب بېرىدۇ</p>
+    </footer>
+  </main>
+
+  <div class="sheet hidden" id="sheet" role="dialog" aria-modal="true" aria-label="设置">
+    <div class="sheet-panel">
+      <div class="sheet-head">
+        <h2>设置 <small>家人使用</small></h2>
+        <button class="ghost" id="closeSettings">关闭</button>
+      </div>
+
+      <p class="sheet-note" id="statusLine"></p>
+
+      <fieldset>
+        <legend>长辈信息</legend>
+        <label>称呼（维语）<input id="f_title" placeholder="ئاپا" /></label>
+        <label>城市<input id="f_city" placeholder="乌鲁木齐" /></label>
+        <label>年龄<input id="f_age" inputmode="numeric" placeholder="72" /></label>
+        <label>健康注意<input id="f_health" placeholder="高血压、糖尿病…" /></label>
+        <label>家里人<input id="f_family" placeholder="儿子 阿迪力、女儿 古丽…" /></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>链路</legend>
+        <label>模式
+          <select id="f_mode">
+            <option value="auto">自动（有 key 走在线）</option>
+            <option value="demo">演示（脚本回复）</option>
+            <option value="live">在线</option>
+          </select>
+        </label>
+        <label>链路
+          <select id="f_arm">
+            <option value="A'">A' 直出 + 人设（推荐）</option>
+            <option value="A">A 直出（最小提示词）</option>
+            <option value="B1">B1 专用翻译模型中转</option>
+            <option value="B2">B2 同一 LLM 自翻中转</option>
+          </select>
+        </label>
+        <label>每日上限<input id="f_limit" inputmode="numeric" /></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>模型与语音</legend>
+        <label>LLM 地址<input id="f_llm_url" placeholder="https://api.deepseek.com/v1" /></label>
+        <label>LLM 模型<input id="f_llm_model" placeholder="deepseek-chat" /></label>
+        <label>LLM Key<input id="f_llm_key" type="password" placeholder="sk-…" /></label>
+        <label>维语 TTS 地址<input id="f_tts_url" placeholder="自建 TTS 的 HTTP 地址" /></label>
+        <label>维语 TTS 音色<input id="f_tts_voice" placeholder="留空则中文演示音" /></label>
+        <label>ASR 状态<input id="f_asr" disabled /></label>
+      </fieldset>
+
+      <div class="sheet-actions">
+        <button class="primary" id="saveSettings">保存</button>
+        <button class="ghost" id="exportBtn">导出诊断</button>
+        <button class="ghost" id="failuresBtn">失败清单</button>
+        <button class="ghost danger" id="resetMemory">清空长期记忆</button>
+      </div>
+
+      <fieldset>
+        <legend>测试（不出声，直接打字）</legend>
+        <label>输入一句话<input id="f_test" placeholder="باشىم ئاغرىۋاتىدۇ" /></label>
+        <button class="ghost" id="testBtn">发送</button>
+      </fieldset>
+
+      <pre class="log" id="log" hidden></pre>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script>
+    if (location.search.includes('debug')) {
+      setTimeout(() => {
+        const rows = [];
+        rows.push('inner=' + innerWidth + ' clientW=' + document.documentElement.clientWidth +
+          ' bodyScrollW=' + document.body.scrollWidth + ' bodyClientW=' + document.body.clientWidth);
+        for (const sel of ['.app', '.stage', '.greeting', '.top', '.brand', '.hint', '.talk', '.dock', '.status']) {
+          const el = document.querySelector(sel);
+          if (!el) continue;
+          const r = el.getBoundingClientRect();
+          rows.push(sel + ' x=' + Math.round(r.x) + ' w=' + Math.round(r.width));
+        }
+        const pre = document.createElement('pre');
+        pre.id = 'metrics';
+        pre.style.cssText = 'position:fixed;top:0;left:0;z-index:999;background:#fff;color:#000;font:12px monospace;padding:4px';
+        pre.textContent = rows.join('\n');
+        document.body.appendChild(pre);
+      }, 900);
+    }
+  </script>
+</body>
+</html>
