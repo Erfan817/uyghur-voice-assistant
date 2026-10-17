@@ -11,6 +11,12 @@ def test_medical_not_emergency():
     assert analyze("血压高，吃什么药").category == "medical"
 
 
+def test_hospital_directions_not_medical():
+    # 问路不是问诊，不能回"我不能给剂量"
+    assert analyze("دوختۇرخانىغا قانداق بارىمەن؟").category == "normal"
+    assert analyze("去医院怎么走").category == "normal"
+
+
 def test_religion():
     assert analyze("礼拜前能不能吃东西").category == "religion"
 

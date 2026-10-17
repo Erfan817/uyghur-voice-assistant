@@ -18,6 +18,29 @@ DATA_DIR = Path(os.environ.get("AYNUR_DATA_DIR") or (ROOT / "data"))
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
+def _load_dotenv(path: Path) -> None:
+    """极简 .env 读取：KEY=VALUE，支持 # 注释和引号。已存在的环境变量优先。"""
+    try:
+        if not path.exists():
+            return
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                value = value[1:-1]
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        pass
+
+
+_load_dotenv(ROOT / ".env")
+
+
 def _s(name: str, default: str = "") -> str:
     value = os.environ.get(name)
     return value.strip() if value and value.strip() else default

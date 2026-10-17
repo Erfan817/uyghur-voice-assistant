@@ -50,6 +50,10 @@ _NEGATIVE: dict[str, tuple[str, ...]] = {
 
 _ORDER = ("emergency", "religion", "medical", "policy")
 
+# 问路/位置类不算医疗：/قانداق بار/（怎么去）这类句子会命中"دوختۇر"，
+# 但回答应该是"让家里人带你去"，不是"我不能给剂量"。
+_NAV_WORDS = ("قانداق بار", "قەيەردە", "يول", "怎么走", "怎么去", "在哪")
+
 
 @dataclass
 class Verdict:
@@ -73,6 +77,8 @@ def _hits(text: str, words: tuple[str, ...]) -> list[str]:
 def analyze(text: str) -> Verdict:
     raw = text or ""
     norm = normalize_for_match(raw)
+    if "دوختۇرخان" in raw and any(word in raw for word in _NAV_WORDS):
+        return Verdict(category="normal")
     for category in _ORDER:
         words = _KEYWORDS[category]
         hits = _hits(raw, words) or _hits(norm, words)
