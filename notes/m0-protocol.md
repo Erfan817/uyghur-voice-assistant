@@ -44,8 +44,8 @@
 
 - **A**：LLM 直出维语（最小提示词）
 - **A'**：直出 + 人设卡（[persona.md](persona.md)）+ 术语表
-- **B1**：Hunyuan-MT 维→汉 → 中文推理 → 汉→维
-- **B2**：同 B1，但翻译也用对话 LLM
+- **B1**：Hunyuan-MT 维→汉 → 中文推理 → 汉→维（可自托管；先用硅基流动托管 API 对标质量）
+- **B2**：同 B1，但翻译也用对话 LLM（同一 API 三次调用，省一个供应商）
 
 ```powershell
 .\.venv\Scripts\python.exe eval\run_ab.py --arms "A,A',B1,B2"
