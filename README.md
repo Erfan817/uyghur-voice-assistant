@@ -15,9 +15,9 @@
   <a href="#维语-tts本地方案已跑通"><img src="https://img.shields.io/badge/%E7%BB%B4%E8%AF%AD%20TTS-%E6%9C%AC%E5%9C%B0%E5%B7%B2%E8%B7%91%E9%80%9A-brightgreen?style=flat-square" alt="维语 TTS 本地已跑通"></a>
 </p>
 
-> **状态（2026-10-17）**：服务端 + PWA 客户端已经能跑，48 个测试通过。
+> **状态（2026-10-17）**：服务端 + PWA 客户端已经能跑，56 个测试通过。
 > 没有 API key 时进入**演示模式**；配一个 OpenAI 兼容的 key 就切成**在线模式**。
-> 维语 TTS 改为**本地自托管**（SLED-TTS Uyghur 0.2B），已在 RTX 4060 上跑通，RTF 1.1–1.8。
+> **ASR 与 TTS 都已本地化**：XLS-R 维语识别（输出阿拉伯字母）+ SLED-TTS 维语合成，都在 RTX 4060 上跑。
 >
 > **当前定位：自用 + 作品集**（[D8](notes/decisions.md)）。家庭部署推迟，不做 24 小时常开与内网穿透。
 
@@ -40,7 +40,8 @@
 - [技术架构](#技术架构)
 - [组件选型](#组件选型)
 - [维语 TTS：本地方案已跑通](#维语-tts本地方案已跑通)
-- [接阿里云 ASR（维语听写）](#接阿里云-asr维语听写)
+- [本地 ASR：维语听写已跑通](#本地-asr维语听写已跑通)
+- [接阿里云 ASR（备选）](#接阿里云-asr备选)
 - [M0 评测流程](#m0-评测流程)
 - [里程碑](#里程碑)
 - [风险](#风险)
@@ -67,6 +68,7 @@
 ## 现在能跑什么
 
 - **按住说话**：大字界面、维语优先、RTL；浏览器里直接录成 16k 单声道 WAV
+- **真听写**：本地 XLS-R 维语模型，输出阿拉伯字母，RTF 约 0.13
 - **一轮完整链路**：ASR → 规范化 → 安全路由 → LLM → 维语文本 → 语音（文字先出，语音后到，不阻塞）
 - **打开问候**：当天第一次打开，说一句问候 + 真实天气（Open-Meteo，免 key）
 - **记得住**：称呼、城市、年龄、健康注意、家里人；随时一键清空
@@ -146,7 +148,7 @@ TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot
 
 | 底层能力 | 可用零件 |
 |---|---|
-| 维语 ASR | 阿里云智能语音（通用-维吾尔语）、讯飞 |
+| 维语 ASR | 本地 XLS-R（`mamatjan/xls-r-uyghur-cv18`，阿拉伯字母）、阿里云 ISI（拉丁转写）、讯飞 |
 | 维语 TTS | 本地 `SLED-TTS-Uyghur-UAS-0.2B`（MIT，已跑通）、讯飞（企业级，2 万/年） |
 | 维语语义 | CINO（哈工大讯飞联合实验室） |
 
@@ -220,7 +222,7 @@ flowchart LR
 
 | 环节 | 已实现 | 备注 |
 |---|---|---|
-| 维语 ASR | `aliyun`（ISI 维语一句话识别）、`http`、`mock` | 阿里云要 AK/SK 在服务端换 token，24h 过期 |
+| 维语 ASR | `http`（本地 XLS-R 服务）、`aliyun`（拉丁转写）、`mock` | 默认走本地 `local_asr/` |
 | 对话 LLM | 任意 OpenAI 兼容 | DeepSeek / DashScope / SiliconFlow 都行 |
 | 维→汉 / 汉→维 | 任意 OpenAI 兼容（如 Hunyuan-MT） | B1 用，可不配，自动退回 B2 |
 | 维语 TTS | `local`（SLED 0.2B，GPU）、`xunfei`（企业级，2 万/年）、`http`、`edge`/`sapi`（中文演示） | 默认走本地 |
@@ -258,15 +260,41 @@ Provider 全部可替换，见 `server/providers/`。
 
 ---
 
-## 接阿里云 ASR（维语听写）
+## 本地 ASR：维语听写已跑通
 
-演示模式下的“听写”是轮播脚本；接上阿里云就是真的。
+演示模式下的“听写”是轮播脚本；现在换成真的：
+
+| | |
+|---|---|
+| 模型 | `mamatjan/xls-r-uyghur-cv18`（XLS-R 300M，Common Voice 18 微调） |
+| 输出 | **阿拉伯字母**（不是拉丁转写） |
+| 设备 | RTX 4060，RTF 约 0.13（3.5 秒音频 0.45 秒识别） |
+| 服务 | `local_asr/server.py`，`POST /asr`（multipart）→ `{"text": ...}` |
+
+```powershell
+.venv-tts\Scripts\python.exe -m uvicorn local_asr.server:app --port 8200
+```
+
+```dotenv
+AYNUR_ASR_PROVIDER=http
+AYNUR_ASR_URL=http://127.0.0.1:8200/asr
+```
+
+端到端实测（音频 → ASR → LLM → TTS）：ASR 约 1.0 秒、LLM 约 1.8 秒，总 2.8 秒左右。
+
+> **阿里云 ISI 备选**：能调通，但返回的是**拉丁字母转写**（例如把「بۈگۈن ھاۋا ياخشى」识别成 `Bvgvn Hawa yahxi`），
+> 喂给模型和界面都要再做一层不靠谱的转写，所以默认不用它。代码和配置保留，见下一节。
+
+---
+
+## 接阿里云 ASR（备选）
 
 1. 开通「智能语音交互」→ 创建项目 → 模型选**「通用-维吾尔语」**→ 记下 **appkey**
 2. RAM 里建子账号，只授权 NLS，拿 **AccessKey ID / Secret**（AK 只放服务端，不进 App）
-3. 填进 `.env`：
+3. 填进 `.env`，并把 provider 改回 `auto` 或 `aliyun`：
 
 ```dotenv
+AYNUR_ASR_PROVIDER=aliyun
 AYNUR_ASR_APPKEY=...
 AYNUR_ASR_ACCESS_KEY_ID=...
 AYNUR_ASR_ACCESS_KEY_SECRET=...
@@ -321,6 +349,7 @@ AYNUR_ASR_ACCESS_KEY_SECRET=...
 - [x] 医疗/宗教/政策/紧急兜底
 - [x] 文字先出、语音后到（避免 TTS 拖垮整轮延迟）
 - [x] 维语 TTS 本地跑通（SLED 0.2B，RTF 1.1–1.8）
+- [x] 维语 ASR 本地跑通（XLS-R，阿拉伯字母，RTF 0.13）
 - [ ] 家人参考录音 + 真机验收
 - [ ] 装到安卓主屏幕，走完真实设备验收
 
@@ -377,7 +406,8 @@ AYNUR_ASR_ACCESS_KEY_SECRET=...
 | `AYNUR_ARM` | `A` / `A'` / `B1` / `B2` |
 | `AYNUR_LLM_BASE_URL` `AYNUR_LLM_API_KEY` `AYNUR_LLM_MODEL` | 对话模型（任意 OpenAI 兼容） |
 | `AYNUR_MT_*` | B1 的专用翻译模型（可选） |
-| `AYNUR_ASR_PROVIDER` `AYNUR_ASR_APPKEY` `AYNUR_ASR_ACCESS_KEY_ID` `AYNUR_ASR_ACCESS_KEY_SECRET` | 阿里云 ISI 维语 ASR |
+| `AYNUR_ASR_PROVIDER` `AYNUR_ASR_URL` | 本地 ASR（HTTP，`local_asr/`） |
+| `AYNUR_ASR_APPKEY` `AYNUR_ASR_ACCESS_KEY_ID` `AYNUR_ASR_ACCESS_KEY_SECRET` | 阿里云 ISI 备选 |
 | `AYNUR_XF_APP_ID` `AYNUR_XF_API_KEY` `AYNUR_XF_API_SECRET` `AYNUR_XF_VCN` `AYNUR_XF_SPEED` | 讯飞维语 TTS |
 | `AYNUR_TTS_URL` `AYNUR_TTS_VOICE_UG` | 本地/自建维语 TTS（HTTP），本地服务见 `local_tts/` |
 | `AYNUR_CITY` `AYNUR_USER_TITLE` `AYNUR_DAILY_LIMIT` | 产品参数 |
@@ -401,10 +431,12 @@ server/
   weather.py       天气（Open-Meteo，免 key）
   providers/       ASR / LLM / TTS / MT 适配层
   static/          PWA 客户端（含 icon、manifest、service worker）
-tests/             47 个测试
+local_asr/         本地维语识别服务（XLS-R，端口 8200）
+local_tts/         本地维语合成服务（SLED-TTS，端口 8100）
+tests/             56 个测试
 corpus/            20 题模板 + 录音转写说明
 eval/              T0 盲评工具（run_ab / blind / summarize）
-scripts/           start.ps1、smoke.py、probe_net.py
+scripts/           start.ps1、smoke.py、asr_check.py、download_*.py
 notes/             规划文档 + 截图
 ```
 
