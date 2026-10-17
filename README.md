@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="app-icon-uyghur-woman.png" alt="Aynur App 图标：身着艾特莱斯服饰、戴传统花帽的维吾尔族青年女性" width="160" height="160">
+</p>
+
 <h1 align="center">Aynur · ئاينۇر</h1>
 
 给家里长辈用的维吾尔语 AI 对话助手</
