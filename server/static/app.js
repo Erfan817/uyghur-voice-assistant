@@ -16,13 +16,13 @@
   };
 
   const TEXT = {
-    idle: 'بېسىپ سۆزلەڭ · 按住说话',
-    recording: 'ئاڭلاۋاتىمەن… · 我在听',
-    thinking: 'ئويلىنىۋاتىمەن… · 我在想',
+    idle: 'بېسىپ سۆزلەڭ',
+    recording: 'ئاڭلاۋاتىمەن…',
+    thinking: 'ئويلىنىۋاتىمەن…',
     error: 'كەچۈرۈڭ، قايتا سىناڭ · 出错了',
-    short: 'بىر ئاز ئۇزۇنراق سۆزلەڭ · 再多说一会儿',
+    short: 'بىر ئاز ئۇزۇنراق سۆزلەڭ',
     denied: 'مىكروفونغا رۇخسەت بېرىڭ · 请允许麦克风',
-    done: 'بېسىپ سۆزلەڭ · 按住说话',
+    done: 'بېسىپ سۆزلەڭ',
   };
 
   // ---------- 会话 ----------
@@ -232,7 +232,7 @@
       const promise = audio.play();
       if (promise && promise.catch) {
         promise.catch(() => {
-          setStatus('idle', 'يەنە ئاڭلاڭ · 点"再听一遍"播放');
+          setStatus('idle', 'ئاۋازنى ئاڭلاش ئۈچۈن «يەنە ئاڭلاڭ»نى بېسىڭ');
         });
       }
     } catch (_) {
@@ -395,7 +395,7 @@
       $('f_asr').value = `${data.resolved_asr} / TTS: ${data.resolved_tts}`;
       $('statusLine').textContent = `模式：${data.resolved_mode} · 链路：${data.arm} · LLM：${
         data.has_llm ? '已配置' : '未配置'
-      } · 维语 TTS：${data.has_ug_voice ? '已配置' : '未配置（演示用中文音）'}`;
+      } · 维语 TTS：${data.has_ug_voice ? '已配置（' + data.ug_tts + '）' : '未配置（演示用中文音）'}`;
     } catch (err) {
       console.error(err);
     }
@@ -491,7 +491,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: state.sessionId, reason, text }),
       });
-      setStatus('idle', 'ئائىلىڭىزگە ئېيتىپ قويدۇم · 已经记下来告诉家里人');
+      setStatus('idle', 'خاتىرىلەپ قويدۇم، ئائىلىڭىزغا ئېيتىمەن');
     } catch (err) {
       console.error(err);
     }

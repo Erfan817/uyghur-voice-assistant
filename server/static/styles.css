@@ -36,11 +36,12 @@ body {
 }
 
 .app {
-  min-height: 100dvh;
+  height: 100dvh;
   max-width: 560px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   padding: calc(14px + env(safe-area-inset-top)) 18px calc(12px + env(safe-area-inset-bottom));
   gap: 10px;
 }
@@ -113,7 +114,7 @@ body {
 }
 
 .greeting {
-  margin: 2px 0 4px;
+  margin: auto 0 4px;
   font-size: 22px;
   line-height: 1.85;
   color: var(--teal);

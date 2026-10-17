@@ -58,9 +58,13 @@ class TTSService:
 
         candidates: list[tuple[str, str, str, str]] = []
         if lang == "ug":
-            if not self.settings.has_ug_voice():
+            kind = self.settings.ug_tts()
+            if kind == "xunfei":
+                candidates.append(("xunfei", self.settings.xf_vcn, "mp3", "audio/mpeg"))
+            elif kind == "http":
+                candidates.append(("http", self.settings.tts_voice_ug, "mp3", "audio/mpeg"))
+            else:
                 raise TTSError("no_ug_voice")
-            candidates.append(("http", self.settings.tts_voice_ug, "mp3", "audio/mpeg"))
         else:
             kind = self.settings.resolved_tts()
             if kind == "http":
@@ -100,7 +104,21 @@ class TTSService:
             return await asyncio.to_thread(self._sapi, text)
         if provider == "http":
             return await self._http(text, voice)
+        if provider == "xunfei":
+            return await self._xunfei(text)
         return self._tone()
+
+    async def _xunfei(self, text: str) -> bytes:
+        from .xfyun import XunfeiConfig, synthesize
+
+        config = XunfeiConfig(
+            app_id=self.settings.xf_app_id,
+            api_key=self.settings.xf_api_key,
+            api_secret=self.settings.xf_api_secret,
+            vcn=self.settings.xf_vcn,
+            speed=self.settings.xf_speed,
+        )
+        return await synthesize(config, text)
 
     async def _edge(self, text: str, voice: str, attempts: int = 2) -> bytes:
         try:

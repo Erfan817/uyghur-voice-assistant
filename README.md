@@ -12,12 +12,12 @@
   <a href="notes/decisions.md"><img src="https://img.shields.io/badge/%E7%8A%B6%E6%80%81-v0.1%20%E5%8F%AF%E8%BF%90%E8%A1%8C%E5%8E%9F%E5%9E%8B-brightgreen?style=flat-square" alt="状态：v0.1 可运行原型"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-blue?style=flat-square" alt="许可：MIT"></a>
   <a href="#技术架构"><img src="https://img.shields.io/badge/%E5%BD%A2%E6%80%81-PWA%20%C2%B7%20%E5%AE%89%E5%8D%93%E5%8F%AF%E5%AE%89%E8%A3%85-3DDC84?style=flat-square" alt="形态：PWA · 安卓可安装"></a>
-  <a href="#还差哪一步"><img src="https://img.shields.io/badge/%E7%BB%B4%E8%AF%AD%20TTS-%E4%BB%8D%E6%98%AF%E6%9C%AA%E8%A7%A3%E9%A1%B9-orange?style=flat-square" alt="维语 TTS 仍是未解项"></a>
+  <a href="#还差哪一步"><img src="https://img.shields.io/badge/%E7%BB%B4%E8%AF%AD%20TTS-%E8%AE%AF%E9%A3%9E%E5%B7%B2%E6%8E%A5%E9%80%9A-brightgreen?style=flat-square" alt="维语 TTS 讯飞已接通"></a>
 </p>
 
-> **状态（2026-10-17）**：服务端 + PWA 客户端已经能跑，41 个测试通过。
+> **状态（2026-10-17）**：服务端 + PWA 客户端已经能跑，47 个测试通过。
 > 没有 API key 时进入**演示模式**（脚本回复 + 中文语音）；配一个 OpenAI 兼容的 key 就切成**在线模式**。
-> 维语 TTS 仍没有可用的商用 API，这是目前唯一的产品级缺口。
+> 维语 TTS 已确认可买（讯飞在线语音合成 WebAPI），配上 key 就能说维语。
 
 <p align="center">
   <img src="notes/img/shot-main.png" width="290" alt="主界面：按住说话">
@@ -43,6 +43,7 @@
 - [风险](#风险)
 - [非目标](#非目标)
 - [与后续项目的关系](#与后续项目的关系)
+- [配置项](#配置项)
 - [目录结构](#目录结构)
 - [规划文档](#规划文档)
 
@@ -91,7 +92,7 @@ python -m venv .venv
 打开 <http://127.0.0.1:8000>。**第一次请用 Chrome / Edge，不要用微信内置浏览器**（微信会拦麦克风）。
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest        # 41 个测试
+.\.venv\Scripts\python.exe -m pytest        # 47 个测试
 .\.venv\Scripts\python.exe scripts\smoke.py # 打一遍真实接口
 ```
 
@@ -130,8 +131,6 @@ $env:AYNUR_LLM_MODEL="deepseek-chat"
 
 TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot 克隆，比任何"标准播音腔"都更容易被接受。
 
-> ⚠️ 人设年龄目前两处不一致：README 写青年女性，[`notes/persona.md`](notes/persona.md) 和系统提示词仍写中年女性（"大姐/姑姑"）。需要拍一下，见 [决策记录](notes/decisions.md) 的待定项。
-
 ---
 
 ## 为什么做这个
@@ -145,7 +144,7 @@ TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot
 | 底层能力 | 可用零件 |
 |---|---|
 | 维语 ASR | 阿里云智能语音（通用-维吾尔语）、讯飞 |
-| 维语 TTS | `qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B`（开源权重，要自己部署） |
+| 维语 TTS | 讯飞在线语音合成（WebAPI，可买）、`qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B`（开源，需自托管） |
 | 维语语义 | CINO（哈工大讯飞联合实验室） |
 
 **缺的不是模型能力，是把它们组装成一个能连续对话的产品。**
@@ -221,7 +220,7 @@ flowchart LR
 | 维语 ASR | `aliyun`（ISI 维语一句话识别）、`http`、`mock` | 阿里云要 AK/SK 在服务端换 token，24h 过期 |
 | 对话 LLM | 任意 OpenAI 兼容 | DeepSeek / DashScope / SiliconFlow 都行 |
 | 维→汉 / 汉→维 | 任意 OpenAI 兼容（如 Hunyuan-MT） | B1 用，可不配，自动退回 B2 |
-| 维语 TTS | `edge`（中文）、`sapi`（离线中文）、`http`（自建维语） | 维语音色一配就自动切过去 |
+| 维语 TTS | `xunfei`（讯飞 WebAPI，维语）、`http`（自建维语）、`edge`/`sapi`（中文演示） | 讯飞配好 app_id + vcn 就出声 |
 | 客户端 | PWA（Vanilla JS + WebAudio） | 免安装、可添加到主屏幕；将来要 APK 再包 WebView |
 | 服务端 | FastAPI + SQLite | 一个进程同时管 API、页面、音频缓存 |
 | 部署 | 一台小云主机 | 国内节点，降低往返延迟 |
@@ -232,17 +231,26 @@ Provider 全部可替换，见 `server/providers/`。
 
 ## 还差哪一步
 
-**维语 TTS 没有现成的商用 API。** 这是当前产品最硬的缺口：
+**维语 TTS 有解了：讯飞在线语音合成支持维吾尔语。**（2026-10-17 核实）
 
-- 千问云 / Qwen3 系列的语音模型，语言列表里没有维吾尔语（2026-10-17 实查）
-- Edge TTS 的 93 个音色里没有 `ug-`
-- 开源的 `qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B` 要自己部署，和"不自托管、50 元/月"的红线冲突
+- 讯飞文档写明支持 37 个语种，含维吾尔语；发音人示例：**Dilare**（维吾尔族语）、**帕蒂古里**（维吾尔语女声）
+- **WebAPI 支持，SDK 不支持** —— 我们走服务端，正好不受影响
+- 必须先在讯飞控制台「语音合成」里添加发音人，否则报错 `11200`；添加后控制台会给出 `vcn` 参数值
+- 价格：TTS 套餐按调用量卖（50 万次起），发音人另计，以控制台为准
 
-三条路都在代码里留好了接口：
+配置四行就出声：
 
-1. **找到维语 TTS 的 API**（讯飞翻译机能维汉互译并朗读，值得发一张工单）→ 填 `AYNUR_TTS_URL` + `AYNUR_TTS_VOICE_UG`
-2. **固定话术人声录制**（问候、天气、兜底、高频回答）→ 放进静态音频，动态回答只给文字
-3. **接受文字回答**（长辈认维吾尔文，不认汉字）→ 把"我听成了什么"做成大字维文 + 重说按钮
+```powershell
+$env:AYNUR_XF_APP_ID="..."
+$env:AYNUR_XF_API_KEY="..."
+$env:AYNUR_XF_API_SECRET="..."
+$env:AYNUR_XF_VCN="..."        # 控制台添加发音人后显示
+$env:AYNUR_XF_SPEED="45"       # 长辈场景比正常语速慢一点
+```
+
+没配之前：演示模式用中文音，在线模式只显示维文、不出声。
+
+备选仍然保留：固定话术人声录制（问候/天气/兜底）、或接受纯文字回答。
 
 ---
 
@@ -283,7 +291,7 @@ Provider 全部可替换，见 `server/providers/`。
 - [x] 首次打开即可用（无登录）
 - [x] 医疗/宗教/政策/紧急兜底
 - [x] 文字先出、语音后到（避免 TTS 拖垮整轮延迟）
-- [x] 维语 TTS 接入点（等供给）
+- [x] 维语 TTS 接入（讯飞 WebAPI，等 key）
 - [ ] 装到安卓主屏幕，走完真实设备验收
 
 ### M2 · 家里人试用（2 周）
@@ -304,7 +312,7 @@ Provider 全部可替换，见 `server/providers/`。
 
 | 风险 | 说明 | 对策 |
 |---|---|---|
-| **维语 TTS 供给** | 没有商用 API，开源权重又要自托管 | 三条路：找 API / 固定话术人声 / 只给文字 |
+| **维语 TTS** | 讯飞有维语，但要先在控制台开通发音人，价格待确认 | 已接入；key 到位即出声；备选固定话术人声 |
 | **延迟** | 中转路线四跳 + 新疆到内地云往返 | 文字先出、语音后到；TTS 缓存；国内节点 |
 | **内容安全** | 一定会被问医疗、宗教、政策，通用模型会编 | 分类兜底 + 输出后检；医疗不给剂量和诊断 |
 | **隐私** | 语音要上传云端做 ASR | 原始音频不进库、ASR 完即删；明确告知家人 |
@@ -329,6 +337,24 @@ Provider 全部可替换，见 `server/providers/`。
 
 ---
 
+## 配置项
+
+| 变量 | 作用 |
+|---|---|
+| `AYNUR_MODE` | `auto` / `demo` / `live` |
+| `AYNUR_ARM` | `A` / `A'` / `B1` / `B2` |
+| `AYNUR_LLM_BASE_URL` `AYNUR_LLM_API_KEY` `AYNUR_LLM_MODEL` | 对话模型（任意 OpenAI 兼容） |
+| `AYNUR_MT_*` | B1 的专用翻译模型（可选） |
+| `AYNUR_ASR_PROVIDER` `AYNUR_ASR_APPKEY` `AYNUR_ASR_ACCESS_KEY_ID` `AYNUR_ASR_ACCESS_KEY_SECRET` | 阿里云 ISI 维语 ASR |
+| `AYNUR_XF_APP_ID` `AYNUR_XF_API_KEY` `AYNUR_XF_API_SECRET` `AYNUR_XF_VCN` `AYNUR_XF_SPEED` | 讯飞维语 TTS |
+| `AYNUR_TTS_URL` `AYNUR_TTS_VOICE_UG` | 自建维语 TTS（HTTP） |
+| `AYNUR_CITY` `AYNUR_USER_TITLE` `AYNUR_DAILY_LIMIT` | 产品参数 |
+| `AYNUR_ACCESS_TOKEN` | 公网部署时给 `/api/*` 加口令 |
+
+完整示例见 [`.env.example`](.env.example)；设置页写入的配置存在 `data/settings.json`。
+
+---
+
 ## 目录结构
 
 ```
@@ -343,7 +369,7 @@ server/
   weather.py       天气（Open-Meteo，免 key）
   providers/       ASR / LLM / TTS / MT 适配层
   static/          PWA 客户端（含 icon、manifest、service worker）
-tests/             41 个测试
+tests/             47 个测试
 corpus/            20 题模板 + 录音转写说明
 eval/              T0 盲评工具（run_ab / blind / summarize）
 scripts/           start.ps1、smoke.py、probe_net.py

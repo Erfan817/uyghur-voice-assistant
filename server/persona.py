@@ -2,6 +2,11 @@
 
 所有维语文本都是"待母语者校对"状态（见 notes/persona.md）。
 改话术只改这一个文件，别散落到各处。
+
+写作约定：
+- 用维吾尔语口语，不用书面腔；一句话一个意思。
+- 标点用阿拉伯标点（، ؟ ），句末用句点。
+- 称呼一律用 profile 里的 title，不自己发明。
 """
 
 from __future__ import annotations
@@ -54,17 +59,18 @@ GLOSSARY: dict[str, str] = {
     "馕": "نان",
     "茶": "چاي",
     "感冒": "زۇكام",
-    "发烧": "ئىسسىق",
+    "发烧": "قىزىتما",
     "头疼": "باش ئاغرىقى",
 }
 
-SYSTEM_PROMPT = """你是 Aynur（ئاينۇر），维吾尔族中年女性，是用户家里的"大姐/姑姑"式家人，不是客服，不是翻译器。
+SYSTEM_PROMPT = """你是 Aynur（ئاينۇر），维吾尔族青年女性，像家里来的一个懂事的年轻亲戚——亲近、耐心、话不多。
+你不是客服，也不是翻译器。
 
 你必须遵守：
 1. 只输出维吾尔语（阿拉伯字母 UEY），不输出汉字、英文、拉丁转写。
 2. 每句不超过 15 个词，一句话一个意思；总共 1–3 句，不要长篇大论。
 3. 先接住情绪，再给信息。可以自然使用"ئە""ھەئە""بولىدۇ"这类语气词。
-4. 语气温和、语速感的短句、不抢话、不说教。
+4. 语气温和、语速慢、不抢话、不说教；像在客厅里跟长辈说话，不像念文章。
 5. 没听清就说没听清，不要猜；不会就说不会，不要编。
 6. 医疗：不给药名、剂量、诊断，只建议问医生或家人。宗教：不给教法判断，不引用经文。
 7. 政策/办事：只讲流程性常识，涉及具体条文就说"以官方为准"。
@@ -97,14 +103,53 @@ def build_system_prompt(profile: dict | None = None) -> str:
     )
 
 
+_RAIN_CODES = {51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99}
+_SNOW_CODES = {71, 73, 75, 77, 85, 86}
+
+_ADVICE = {
+    "rain": ("يامغۇر بار، كۈنلۈك ئېلىڭ.", "有雨，记得带伞。"),
+    "snow": ("قار بار، تېيىلىپ كەتمەڭ.", "有雪，路滑小心。"),
+    "cold": ("سوغۇق، ئىسسىق كىيىنىڭ.", "冷，穿厚点。"),
+    "hot": ("ئىسسىق، كۆپرەك سۇ ئىچىڭ.", "热，多喝水。"),
+}
+
+
+def weather_line(weather: dict, profile: dict, with_advice: bool = False) -> tuple[str, str]:
+    """把天气数据变成一句话。城市用维语名，避免中文混进维语句子。"""
+    temp = weather.get("temp")
+    cond_ug = weather.get("desc_ug") or ""
+    cond_zh = weather.get("desc_zh") or ""
+    city_raw = weather.get("city") or profile.get("city") or ""
+    city = city_ug(city_raw)
+
+    ug = f"بۈگۈن {city}نىڭ ھاۋاسى {temp} سېلسىيە گىرادۇس، {cond_ug}."
+    zh = f"今天{city_raw} {temp} 度，{cond_zh}。"
+
+    if with_advice:
+        code = weather.get("code")
+        if code in _RAIN_CODES:
+            ug += " " + _ADVICE["rain"][0]
+            zh += _ADVICE["rain"][1]
+        elif code in _SNOW_CODES:
+            ug += " " + _ADVICE["snow"][0]
+            zh += _ADVICE["snow"][1]
+        elif isinstance(temp, (int, float)) and temp <= 5:
+            ug += " " + _ADVICE["cold"][0]
+            zh += _ADVICE["cold"][1]
+        elif isinstance(temp, (int, float)) and temp >= 30:
+            ug += " " + _ADVICE["hot"][0]
+            zh += _ADVICE["hot"][1]
+    return ug, zh
+
+
 def greeting(part_of_day: str, weather: dict | None, profile: dict) -> tuple[str, str]:
     """打开问候。返回 (维语, 中文对照)。中文只给家人看，不朗读。"""
     title = profile.get("title") or "ئاپا"
     head = {
-        "morning": f"خەيرلىك سەھەر، {title}!",
-        "afternoon": f"خەيرلىك كۈن، {title}!",
-        "evening": f"خەيرلىك كەچ، {title}!",
-        "night": f"خەيرلىك كېچە، {title}!",
+        "morning": f"ئەتىگىڭىز خەيرلىك، {title}!",
+        "afternoon": f"كۈنىڭىز خەيرلىك، {title}!",
+        "evening": f"كەچىڭىز خەيرلىك، {title}!",
+        "night": f"ياخشى ئۇخلاڭ، {title}!",
     }.get(part_of_day, f"ياخشىمۇسىز، {title}!")
 
     zh_head = {
@@ -117,43 +162,34 @@ def greeting(part_of_day: str, weather: dict | None, profile: dict) -> tuple[str
     if not weather:
         return head, zh_head
 
-    temp = weather.get("temp")
-    cond_ug = weather.get("desc_ug") or ""
-    cond_zh = weather.get("desc_zh") or ""
-    city_raw = weather.get("city") or profile.get("city") or ""
-    city = city_ug(city_raw)
-    city_zh = city_raw
-
-    sentence_ug = f"بۈگۈن {city} ھاۋاسى {temp} سېلسىيە گىرادۇس، {cond_ug}."
-    sentence_zh = f"今天{city_zh} {temp} 度，{cond_zh}。"
-
-    return f"{head} {sentence_ug}", f"{zh_head}{sentence_zh}"
+    ug, zh = weather_line(weather, profile, with_advice=False)
+    return f"{head} {ug}", f"{zh_head}{zh}"
 
 
 FALLBACKS: dict[str, tuple[str, str]] = {
     "emergency": (
-        "دەرھال ئائىلىڭىزدىكىلەرنى ياكى 120 نى تېلېفون قىلىڭ. مەن شۇ يەردە ساقلاپ تۇرىمەن.",
-        "请立刻给家里人打电话，或者打 120。我在这里等你。",
+        "دەرھال ئائىلىڭىزدىكىلەرگە ياكى 120 گە تېلېفون قىلىڭ. مەن سىز بىلەن بىللە.",
+        "请立刻给家里人或者 120 打电话。我在你身边。",
     ),
     "medical": (
-        "بۇنداق ئەھۋالدا دوختۇردىن سوراش ئەڭ توغرا. مەن دورا ئىسمى ياكى مىقدارىنى ئېيتالمايمەن.",
-        "这种情况最好问医生。药的名称和剂量我不能说。",
+        "بۇنداق ئەھۋالدا دوختۇرغا كۆرۈنۈش ئەڭ توغرا. دورا ئىسمى ۋە مىقدارىنى مەن ئېيتالمايمەن.",
+        "这种情况最好去看医生。药的名称和剂量我不能说。",
     ),
     "religion": (
-        "بۇ مەسىلىدە مەن پەتۋا بەرمەيمەن. ئىمام ياكى ئائىلىڭىزدىكىلەردىن سوراپ باقاي.",
-        "这个我不做教法判断。可以问阿訇或家里人。",
+        "بۇ مەسىلىدە مەن پەتۋا بەرمەيمەن. ئىمامدىن ياكى ئائىلىڭىزدىكىلەردىن سوراڭ.",
+        "这个问题我不做教法判断。可以问阿訇或者家里人。",
     ),
     "policy": (
-        "تەپسىلاتى يەرلىك ئىدارىغا باغلىق، ئەڭ توغرىسى ئىدارىدىن سوراش.",
-        "具体细节看当地部门，最稳妥是去问一下。",
+        "تەپسىلاتى يەرلىك ئىدارىغا باغلىق. ئەڭ توغرىسى شۇ يەردىكى ئىدارىدىن سوراش.",
+        "具体细节看当地部门，最稳妥是去那里问一下。",
     ),
     "unclear": (
-        "كەچۈرۈڭ، ئاڭلىيالمىدىم. يەنە بىر قېتىم ئېيتىڭ.",
-        "抱歉，没听清，再说一遍。",
+        "كەچۈرۈڭ، ئاڭلىيالمىدىم. يەنە بىر قېتىم ئېيتىپ بېرىڭ.",
+        "抱歉，没听清。请再说一遍。",
     ),
     "limit": (
         "بۈگۈن بەك كۆپ سۆزلەشتۇق. ئەتە يەنە سۆزلىشەيلى.",
-        "今天聊得够多了，明天再来。",
+        "今天聊得够多了，明天再聊。",
     ),
     "error": (
         "ھازىرچە ئۇلانالمايۋاتىمەن. سەل تۇرۇپ يەنە سىناڭ.",

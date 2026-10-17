@@ -98,6 +98,7 @@ async def health():
         "arm": settings.arm,
         "asr": settings.resolved_asr(),
         "tts": settings.resolved_tts(),
+        "ug_tts": settings.ug_tts(),
         "has_llm": bool(settings.llm_api_key),
         "has_ug_voice": settings.has_ug_voice(),
         "weather": settings.weather_enabled,

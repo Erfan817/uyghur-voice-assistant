@@ -16,7 +16,7 @@ from . import persona, safety, weather
 from .config import Settings
 from .memory import Store
 from .normalize import clamp_length, is_ug, normalize_ug, split_sentences
-from .persona import GLOSSARY, build_system_prompt, city_ug
+from .persona import GLOSSARY, build_system_prompt
 from .providers.asr import ASRError, build_asr
 from .providers.llm import LLMError, build_llm, build_mt
 from .providers.mt import Translator
@@ -284,26 +284,10 @@ class Pipeline:
         data = await weather.current(city)
         if not data:
             return (
-                "ھازىرچە ھاۋا ئۇچۇرىنى ئالالمايۋاتىمەن.",
-                "暂时拿不到天气。",
+                "ھازىرچە ھاۋا ئۇچۇرىنى تاپالمىدىم. كېيىنرەك يەنە سوراڭ.",
+                "暂时查不到天气，等会儿再问一次。",
             )
-        temp = data.get("temp")
-        desc_ug = data.get("desc_ug") or ""
-        desc_zh = data.get("desc_zh") or ""
-        city = city_ug(city)
-        ug = f"بۈگۈن {city} ھاۋاسى {temp} سېلسىيە گىرادۇس، {desc_ug}."
-        zh = f"今天{city} {temp} 度，{desc_zh}。"
-        if isinstance(temp, (int, float)):
-            if temp <= 5:
-                ug += " سوغۇق، ئىسسىق كىيىپ چىقىڭ."
-                zh += "冷，出门穿厚点。"
-            elif temp >= 30:
-                ug += " ئىسسىق، كۆپرەك سۇ ئىچىڭ."
-                zh += "热，多喝水。"
-        if data.get("code") in {51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99}:
-            ug += " كۈنلۈك ئېلىڭ."
-            zh += "记得带伞。"
-        return ug, zh
+        return persona.weather_line(data, profile, with_advice=True)
 
     # ---- 收尾 ----
     async def _finalize(
@@ -366,7 +350,7 @@ def _part_of_day() -> str:
         return "morning"
     if 11 <= hour < 17:
         return "afternoon"
-    if 17 <= hour < 22:
+    if 17 <= hour < 23:
         return "evening"
     return "night"
 

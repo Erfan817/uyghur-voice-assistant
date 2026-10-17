@@ -63,6 +63,13 @@ class Settings:
     tts_url: str = _s("AYNUR_TTS_URL")
     tts_api_key: str = _s("AYNUR_TTS_API_KEY")
 
+    # 讯飞在线语音合成（目前唯一确认支持维吾尔语的商用 API）
+    xf_app_id: str = _s("AYNUR_XF_APP_ID")
+    xf_api_key: str = _s("AYNUR_XF_API_KEY")
+    xf_api_secret: str = _s("AYNUR_XF_API_SECRET")
+    xf_vcn: str = _s("AYNUR_XF_VCN")
+    xf_speed: int = int(_s("AYNUR_XF_SPEED", "45"))
+
     # 产品参数
     city: str = _s("AYNUR_CITY", "乌鲁木齐")
     user_title: str = _s("AYNUR_USER_TITLE", "ئاپا")
@@ -94,15 +101,21 @@ class Settings:
             return self.tts_provider
         if self.tts_voice_ug and self.tts_url:
             return "http"
-        if self.tts_provider == "auto" and not self.is_live:
-            return "edge" if _edge_available() else "sapi"
-        # live 模式下没有维语 TTS：返回 text-only，由上层决定不出音频
-        if self.tts_voice_ug:
-            return "http"
         return "edge" if _edge_available() else "sapi"
 
+    def has_xunfei(self) -> bool:
+        return bool(self.xf_app_id and self.xf_api_key and self.xf_api_secret and self.xf_vcn)
+
+    def ug_tts(self) -> str:
+        """维语语音用哪家：xunfei | http | none。"""
+        if self.has_xunfei():
+            return "xunfei"
+        if self.tts_voice_ug and self.tts_url:
+            return "http"
+        return "none"
+
     def has_ug_voice(self) -> bool:
-        return bool(self.tts_voice_ug and self.tts_url)
+        return self.ug_tts() != "none"
 
     def public(self) -> dict:
         """给前端和家人设置页看的配置（不含密钥）。"""
@@ -114,14 +127,18 @@ class Settings:
             "asr_access_key_secret",
             "asr_api_key",
             "tts_api_key",
+            "xf_api_key",
+            "xf_api_secret",
         ):
             value = data.get(key) or ""
             data[key] = ("*" * 6 + value[-4:]) if value else ""
         data["resolved_mode"] = self.resolved_mode()
         data["resolved_asr"] = self.resolved_asr()
         data["resolved_tts"] = self.resolved_tts()
+        data["ug_tts"] = self.ug_tts()
         data["has_llm"] = bool(self.llm_api_key)
         data["has_ug_voice"] = self.has_ug_voice()
+        data["has_xunfei"] = self.has_xunfei()
         return data
 
 
@@ -138,7 +155,17 @@ _SETTINGS_FILE = DATA_DIR / "settings.json"
 _EDITABLE = {
     f.name
     for f in fields(Settings)
-    if f.name not in {"llm_api_key", "mt_api_key", "asr_access_key_id", "asr_access_key_secret", "asr_api_key", "tts_api_key"}
+    if f.name
+    not in {
+        "llm_api_key",
+        "mt_api_key",
+        "asr_access_key_id",
+        "asr_access_key_secret",
+        "asr_api_key",
+        "tts_api_key",
+        "xf_api_key",
+        "xf_api_secret",
+    }
 }
 _lock = threading.Lock()
 _cache: Settings | None = None
@@ -153,6 +180,8 @@ def _apply_overrides(settings: Settings, data: dict) -> Settings:
             "asr_access_key_secret",
             "asr_api_key",
             "tts_api_key",
+            "xf_api_key",
+            "xf_api_secret",
         }:
             continue
         if not hasattr(settings, key):

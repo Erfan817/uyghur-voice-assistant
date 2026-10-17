@@ -8,14 +8,41 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from typing import Any
 
 import httpx
 
+from .config import DATA_DIR
+
 _GEOCODE = "http://geocoding-api.open-meteo.com/v1/search"
 _FORECAST = "http://api.open-meteo.com/v1/forecast"
-_WTTR = "https://wttr.in/{city}?format=j1"
+_WTTR = "http://wttr.in/{city}?format=j1"
+
+# wttr.in 用拉丁名更稳
+_CITY_EN = {
+    "乌鲁木齐": "Urumqi",
+    "喀什": "Kashgar",
+    "和田": "Hotan",
+    "阿克苏": "Aksu",
+    "库尔勒": "Korla",
+    "伊宁": "Yining",
+    "吐鲁番": "Turpan",
+    "石河子": "Shihezi",
+    "克拉玛依": "Karamay",
+    "哈密": "Hami",
+    "阿图什": "Artux",
+    "博乐": "Bole",
+    "塔城": "Tacheng",
+    "阿勒泰": "Altay",
+    "昌吉": "Changji",
+    "北京": "Beijing",
+    "上海": "Shanghai",
+}
+
+_STALE_FILE = DATA_DIR / "weather-cache.json"
+_STALE_TTL = 12 * 3600
 
 # WMO weather code -> (维语, 中文)
 _CODES: dict[int, tuple[str, str]] = {
@@ -100,19 +127,23 @@ async def current(city: str) -> dict | None:
             return cached[1]
 
     result: dict | None = None
-    for attempt in range(2):
-        try:
-            result = await _open_meteo(city)
-        except Exception:
-            result = None
+    # wttr 走 http，比 open-meteo 在这类网络下稳；open-meteo 作为备选
+    for fetcher in (_wttr, _open_meteo):
+        for attempt in range(2):
+            try:
+                result = await fetcher(city)
+            except Exception:
+                result = None
+            if result is not None:
+                break
+            await asyncio.sleep(0.3)
         if result is not None:
             break
-        await asyncio.sleep(0.3)
+
     if result is None:
-        try:
-            result = await _wttr(city)
-        except Exception:
-            result = None
+        result = _load_stale(city)
+    elif result.get("temp") is not None:
+        _save_stale(city, result)
 
     _cache[city] = (now, result)
     return result
@@ -159,8 +190,9 @@ async def _open_meteo(city: str) -> dict | None:
 
 
 async def _wttr(city: str) -> dict | None:
-    async with httpx.AsyncClient(timeout=4.0) as client:
-        resp = await client.get(_WTTR.format(city=city))
+    name = _CITY_EN.get(city, city)
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        resp = await client.get(_WTTR.format(city=name))
         resp.raise_for_status()
         data = resp.json()
         cur = (data.get("current_condition") or [{}])[0]
@@ -169,12 +201,39 @@ async def _wttr(city: str) -> dict | None:
         desc_ug, desc_zh = describe(code)
         return {
             "city": city,
-            "temp": int(temp) if temp is not None else None,
+            "temp": int(float(temp)) if temp is not None else None,
             "code": code,
             "desc_ug": desc_ug,
             "desc_zh": desc_zh,
             "source": "wttr.in",
         }
+
+
+def _load_stale(city: str) -> dict | None:
+    try:
+        if not _STALE_FILE.exists():
+            return None
+        data = json.loads(_STALE_FILE.read_text(encoding="utf-8"))
+        item = data.get(city)
+        if not item or time.time() - item.get("ts", 0) > _STALE_TTL:
+            return None
+        payload = dict(item.get("data") or {})
+        payload["stale"] = True
+        return payload or None
+    except Exception:
+        return None
+
+
+def _save_stale(city: str, data: dict) -> None:
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        payload = {}
+        if _STALE_FILE.exists():
+            payload = json.loads(_STALE_FILE.read_text(encoding="utf-8"))
+        payload[city] = {"ts": time.time(), "data": data}
+        _STALE_FILE.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def _wttr_code(cur: dict[str, Any]) -> int:

@@ -1,4 +1,4 @@
-const CACHE = 'aynur-shell-v2';
+const CACHE = 'aynur-shell-v4';
 const SHELL = ['/', '/styles.css', '/app.js', '/icon-192.png', '/avatar.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
