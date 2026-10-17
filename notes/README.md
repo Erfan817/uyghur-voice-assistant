@@ -1,11 +1,11 @@
 # 规划文档索引
 
-本目录存放 Gülnaz 项目规划期的设计讨论与决策记录（2026-10-17 起）。
+本目录存放 Gulnaz 项目规划期的设计讨论与决策记录（2026-10-17 起）。
 
 | 文件 | 内容 |
 |---|---|
 | [decisions.md](decisions.md) | 已定决策、选型核实记录、成本结构 |
-| [persona.md](persona.md) | Gülnaz 人设卡 v1（人设 / 语气 / 记忆 / 兜底 / 问候模板） |
+| [persona.md](persona.md) | Gulnaz 人设卡 v1（人设 / 语气 / 记忆 / 兜底 / 问候模板） |
 | [m0-protocol.md](m0-protocol.md) | M0 链路验证协议（一周版，可直接执行） |
 
 ## 待补
