@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+*.egg-info/
+.env
+*.log
+
+# Android / Gradle
+.gradle/
+local.properties
+*.apk
+*.aab
+build/
+captures/
+
+# Flutter
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# 本地数据与录音（隐私相关，绝不入库）
+data/
+recordings/
+*.wav
+*.m4a
