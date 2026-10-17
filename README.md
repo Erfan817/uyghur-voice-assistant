@@ -40,6 +40,7 @@
 - [技术架构](#技术架构)
 - [组件选型](#组件选型)
 - [维语 TTS：本地方案已跑通](#维语-tts本地方案已跑通)
+- [接阿里云 ASR（维语听写）](#接阿里云-asr维语听写)
 - [M0 评测流程](#m0-评测流程)
 - [里程碑](#里程碑)
 - [风险](#风险)
@@ -254,6 +255,31 @@ Provider 全部可替换，见 `server/providers/`。
 > 50 元/月这条线要拆成两个口径：**运营月费 ≤50 元** 和 **一次性硬件预算**。维语语音合成本质上是算力问题，不是 API 计费问题。
 
 代码里的 `xunfei` provider 保留（企业客户可用），但默认走本地。
+
+---
+
+## 接阿里云 ASR（维语听写）
+
+演示模式下的“听写”是轮播脚本；接上阿里云就是真的。
+
+1. 开通「智能语音交互」→ 创建项目 → 模型选**「通用-维吾尔语」**→ 记下 **appkey**
+2. RAM 里建子账号，只授权 NLS，拿 **AccessKey ID / Secret**（AK 只放服务端，不进 App）
+3. 填进 `.env`：
+
+```dotenv
+AYNUR_ASR_APPKEY=...
+AYNUR_ASR_ACCESS_KEY_ID=...
+AYNUR_ASR_ACCESS_KEY_SECRET=...
+```
+
+4. 验证：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\asr_check.py --audio data\sample.wav --ref "对照文本"
+```
+
+服务端用 AK/SK 换 token（24 小时自动刷新）。注意 NLS 的成功状态码是 **20000000**，不是 200。
+一句话识别上限 60 秒，按住说话够用。
 
 ---
 
