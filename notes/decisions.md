@@ -15,7 +15,7 @@
 ## D1 · 安卓原生 App
 
 - 技术栈：Kotlin + Jetpack Compose，单 Activity，minSdk 26 / targetSdk 33+
-- 录音：`AudioRecord` 16kHz / 16bit / 单声道，Opus 流式上传；录音期间必须挂**前台服务**（Foreground Service），常驻通知"Gulnaz 正在听"——同时解决国产 ROM 保活与"我在听"的反馈
+- 录音：`AudioRecord` 16kHz / 16bit / 单声道，Opus 流式上传；录音期间必须挂**前台服务**（Foreground Service），常驻通知"Aynur 正在听"——同时解决国产 ROM 保活与"我在听"的反馈
 - 交互：按住说话 + 点按模式（按一下开始 / 再按结束），两种都支持，长辈手抖也能用
 - 权限与安装：一切难点发生在**安装时刻、由家人完成**——未知来源安装、麦克风授权、电池白名单、设置城市；使用者拿到手零弹窗零设置
 - 首启向导 3 步（维语大字按钮）：① 同意麦克风 ② 选城市 ③ 试说一句，由安装者 5 分钟完成

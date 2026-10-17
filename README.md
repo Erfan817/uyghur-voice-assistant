@@ -1,4 +1,4 @@
-<h1 align="center">Gulnaz · گۈلناز</h1>
+<h1 align="center">Aynur · ئاينۇر</h1>
 
 <p align="center"><sub>给家里长辈用的维吾尔语 AI 对话助手</sub></p>
 
@@ -45,7 +45,7 @@
 
 ## 名字
 
-**Gulnaz（گۈلناز）**：gül（花）+ naz（温柔、娇媚），维吾尔族常见的女性名。
+**Aynur（ئاينۇر）**：ay（月亮）+ nur（光），维吾尔族最常见的女性名之一——月光。
 
 选一个人名而不是工具名，是因为它不该像个翻译器——它更像家里多了一个能说话的伴。长辈叫得出口，才不会觉得是在"用一个软件"。
 
@@ -232,7 +232,7 @@ flowchart LR
 | 文档 | 内容 |
 |---|---|
 | [`notes/decisions.md`](notes/decisions.md) | 已定决策、选型核实记录、成本结构 |
-| [`notes/persona.md`](notes/persona.md) | Gulnaz 人设卡 v1 |
+| [`notes/persona.md`](notes/persona.md) | Aynur 人设卡 v1 |
 | [`notes/m0-protocol.md`](notes/m0-protocol.md) | M0 链路验证协议（一周版） |
 | [`notes/README.md`](notes/README.md) | 索引与待补清单 |
 
