@@ -12,12 +12,12 @@
   <a href="notes/decisions.md"><img src="https://img.shields.io/badge/%E7%8A%B6%E6%80%81-v0.1%20%E5%8F%AF%E8%BF%90%E8%A1%8C%E5%8E%9F%E5%9E%8B-brightgreen?style=flat-square" alt="状态：v0.1 可运行原型"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-MIT-blue?style=flat-square" alt="许可：MIT"></a>
   <a href="#技术架构"><img src="https://img.shields.io/badge/%E5%BD%A2%E6%80%81-PWA%20%C2%B7%20%E5%AE%89%E5%8D%93%E5%8F%AF%E5%AE%89%E8%A3%85-3DDC84?style=flat-square" alt="形态：PWA · 安卓可安装"></a>
-  <a href="#还差哪一步"><img src="https://img.shields.io/badge/%E7%BB%B4%E8%AF%AD%20TTS-%E6%8A%A5%E4%BB%B7%202%20%E4%B8%87%E5%85%83%2F%E5%B9%B4-orange?style=flat-square" alt="维语 TTS 报价 2 万元/年"></a>
+  <a href="#维语-tts本地方案已跑通"><img src="https://img.shields.io/badge/%E7%BB%B4%E8%AF%AD%20TTS-%E6%9C%AC%E5%9C%B0%E5%B7%B2%E8%B7%91%E9%80%9A-brightgreen?style=flat-square" alt="维语 TTS 本地已跑通"></a>
 </p>
 
 > **状态（2026-10-17）**：服务端 + PWA 客户端已经能跑，48 个测试通过。
 > 没有 API key 时进入**演示模式**；配一个 OpenAI 兼容的 key 就切成**在线模式**。
-> 维语 TTS 确认只有讯飞支持，但报价 **2 万元/年**，超出预算——正在评估自托管与固定话术两条路。
+> 维语 TTS 改为**本地自托管**（SLED-TTS Uyghur 0.2B），已在 RTX 4060 上跑通，RTF 1.1–1.8。
 
 <p align="center">
   <img src="notes/img/shot-main.png" width="290" alt="主界面：按住说话">
@@ -37,7 +37,7 @@
 - [产品原则](#产品原则)
 - [技术架构](#技术架构)
 - [组件选型](#组件选型)
-- [还差哪一步](#还差哪一步)
+- [维语 TTS：本地方案已跑通](#维语-tts本地方案已跑通)
 - [M0 评测流程](#m0-评测流程)
 - [里程碑](#里程碑)
 - [风险](#风险)
@@ -144,7 +144,7 @@ TTS 选型按这个气质走；有条件时用家人熟悉的声音做 zero-shot
 | 底层能力 | 可用零件 |
 |---|---|
 | 维语 ASR | 阿里云智能语音（通用-维吾尔语）、讯飞 |
-| 维语 TTS | 讯飞在线语音合成（WebAPI，可买）、`qwen3-tts-uyghur`、`SLED-TTS-Uyghur-UAS-0.2B`（开源，需自托管） |
+| 维语 TTS | 本地 `SLED-TTS-Uyghur-UAS-0.2B`（MIT，已跑通）、讯飞（企业级，2 万/年） |
 | 维语语义 | CINO（哈工大讯飞联合实验室） |
 
 **缺的不是模型能力，是把它们组装成一个能连续对话的产品。**
@@ -220,7 +220,7 @@ flowchart LR
 | 维语 ASR | `aliyun`（ISI 维语一句话识别）、`http`、`mock` | 阿里云要 AK/SK 在服务端换 token，24h 过期 |
 | 对话 LLM | 任意 OpenAI 兼容 | DeepSeek / DashScope / SiliconFlow 都行 |
 | 维→汉 / 汉→维 | 任意 OpenAI 兼容（如 Hunyuan-MT） | B1 用，可不配，自动退回 B2 |
-| 维语 TTS | `xunfei`（企业级，2 万/年，保留不启用）、`http`（自托管）、`edge`/`sapi`（中文演示） | 自托管或固定话术 |
+| 维语 TTS | `local`（SLED 0.2B，GPU）、`xunfei`（企业级，2 万/年）、`http`、`edge`/`sapi`（中文演示） | 默认走本地 |
 | 客户端 | PWA（Vanilla JS + WebAudio） | 免安装、可添加到主屏幕；将来要 APK 再包 WebView |
 | 服务端 | FastAPI + SQLite | 一个进程同时管 API、页面、音频缓存 |
 | 部署 | 一台小云主机 | 国内节点，降低往返延迟 |
@@ -229,31 +229,29 @@ Provider 全部可替换，见 `server/providers/`。
 
 ---
 
-## 还差哪一步
+## 维语 TTS：本地方案已跑通
 
-**维语 TTS：商业路线只剩讯飞，报价 2 万元/年（约 1670 元/月），是 50 元红线的 33 倍，暂不采用。**
+讯飞报价 **2 万元/年**（约 1670 元/月），是 50 元红线的 33 倍，排除。
+改为在本机跑开源模型 `SLED-TTS-Uyghur-UAS-0.2B`（MIT，208M 参数）：
 
-讯飞本身没问题——文档确认支持维语，WebAPI 能用（SDK 不支持），发音人 Dilare / 帕蒂古里。
-问题只在价格：这是企业级报价，不是给家庭项目的。
+| | |
+|---|---|
+| 显卡 | RTX 4060 Laptop 8 GB |
+| 精度 | fp16 |
+| RTF | **1.1–1.8**（3.5 秒音频约 3.9 秒合成） |
+| 成本 | 0（用已有显卡） |
+| 显存 | 约 390 MB |
 
-四条路，按成本排：
+它是 zero-shot 克隆模型：合成时必须给一段 **3–9 秒的参考音 + 逐字转写**。所以还差两件事：
 
-| 路线 | 成本 | 状态 | 代价 |
-|---|---|---|---|
-| **固定话术人声** | ¥0 | 可立即做 | 动态回答只有文字 |
-| **申请讯飞试用** | ¥0 | 待询问 | 试用期结束要决定买不买 |
-| **开源模型自托管** | 按量 GPU 先测（几十元）；买卡 ¥2000–3000 一次性 | 待验证 | 要一台带 GPU 的机器，音质未测 |
-| **讯飞商用** | ¥20,000/年 | 排除 | 预算外 |
+1. **家人的参考录音**（8–10 秒 + 逐字转写，本人同意）——给了就能出真声
+2. **在线可达**：笔记本要开着，云端服务能访问到它（frp / Tailscale）；或者把整个服务放在这台机器上、家里走局域网
 
-建议顺序：
-
-1. **先用固定话术上线**：家人用手机录 10–20 句（问候、我在听、没听清、医疗/宗教/政策兜底），App 直接播；动态回答显示维文。零成本，今天就能做。
-2. **同时申请讯飞试用**：文档里蒙古语是"联系客服获取试用"，维语也可以问。拿到 1–3 个月试用，把 M0/M1 验证完再决定要不要花钱。
-3. **顺手测开源**：找一台按量 GPU（几块钱一小时），把 SLED-TTS-Uyghur 0.2B 跑起来，测 RTF 和音质。数据出来再谈买卡。
+启动方式、参考音要求见 [`local_tts/README.md`](local_tts/README.md)。
 
 > 50 元/月这条线要拆成两个口径：**运营月费 ≤50 元** 和 **一次性硬件预算**。维语语音合成本质上是算力问题，不是 API 计费问题。
 
-代码里的 `xunfei` provider 保留（配 `AYNUR_XF_*` 就能用），但默认不启用。
+代码里的 `xunfei` provider 保留（企业客户可用），但默认走本地。
 
 ---
 
@@ -294,7 +292,8 @@ Provider 全部可替换，见 `server/providers/`。
 - [x] 首次打开即可用（无登录）
 - [x] 医疗/宗教/政策/紧急兜底
 - [x] 文字先出、语音后到（避免 TTS 拖垮整轮延迟）
-- [ ] 维语 TTS：讯飞 2 万/年已排除，固定话术 or 自托管待定
+- [x] 维语 TTS 本地跑通（SLED 0.2B，RTF 1.1–1.8）
+- [ ] 家人参考录音 + 真机验收
 - [ ] 装到安卓主屏幕，走完真实设备验收
 
 ### M2 · 家里人试用（2 周）
@@ -315,7 +314,7 @@ Provider 全部可替换，见 `server/providers/`。
 
 | 风险 | 说明 | 对策 |
 |---|---|---|
-| **维语 TTS** | 唯一商用是讯飞，2 万元/年，超预算 33 倍 | 固定话术人声 / 申请试用 / 开源自托管 |
+| **维语 TTS** | 本地模型已跑通，但需要参考音、笔记本要常开 | 参考音录制 + 内网穿透；或整机放家里 |
 | **延迟** | 中转路线四跳 + 新疆到内地云往返 | 文字先出、语音后到；TTS 缓存；国内节点 |
 | **内容安全** | 一定会被问医疗、宗教、政策，通用模型会编 | 分类兜底 + 输出后检；医疗不给剂量和诊断 |
 | **隐私** | 语音要上传云端做 ASR | 原始音频不进库、ASR 完即删；明确告知家人 |
@@ -350,7 +349,7 @@ Provider 全部可替换，见 `server/providers/`。
 | `AYNUR_MT_*` | B1 的专用翻译模型（可选） |
 | `AYNUR_ASR_PROVIDER` `AYNUR_ASR_APPKEY` `AYNUR_ASR_ACCESS_KEY_ID` `AYNUR_ASR_ACCESS_KEY_SECRET` | 阿里云 ISI 维语 ASR |
 | `AYNUR_XF_APP_ID` `AYNUR_XF_API_KEY` `AYNUR_XF_API_SECRET` `AYNUR_XF_VCN` `AYNUR_XF_SPEED` | 讯飞维语 TTS |
-| `AYNUR_TTS_URL` `AYNUR_TTS_VOICE_UG` | 自建维语 TTS（HTTP） |
+| `AYNUR_TTS_URL` `AYNUR_TTS_VOICE_UG` | 本地/自建维语 TTS（HTTP），本地服务见 `local_tts/` |
 | `AYNUR_CITY` `AYNUR_USER_TITLE` `AYNUR_DAILY_LIMIT` | 产品参数 |
 | `AYNUR_ACCESS_TOKEN` | 公网部署时给 `/api/*` 加口令 |
 

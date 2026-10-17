@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-tts/
 env/
 *.egg-info/
 .env
@@ -35,3 +36,9 @@ recordings/
 *.db-shm
 *.wav
 *.m4a
+
+# 本地 TTS：模型权重、第三方代码、参考音
+models/
+third_party/
+local_tts/ref/
+local_tts/out.wav
