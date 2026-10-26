@@ -45,6 +45,10 @@ def _digest(*parts: str) -> str:
     return hashlib.sha1(raw).hexdigest()[:32]
 
 
+def _is_wav(data: bytes) -> bool:
+    return data[:4] == b"RIFF" and data[8:12] == b"WAVE"
+
+
 class TTSService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -82,7 +86,22 @@ class TTSService:
         for provider, voice, ext, mime in candidates:
             key = _digest(provider, voice, text)
             target = self.cache_dir / f"{key}.{ext}"
-            if target.exists() and target.stat().st_size > 0:
+            cache_paths = [target]
+            if provider == "http":
+                cache_paths.insert(0, target.with_suffix(".wav"))
+            for cached_path in cache_paths:
+                if not cached_path.exists() or cached_path.stat().st_size == 0:
+                    continue
+                if provider == "http":
+                    with cached_path.open("rb") as handle:
+                        is_wav = _is_wav(handle.read(12))
+                    mime = "audio/wav" if is_wav else "audio/mpeg"
+                    target = cached_path.with_suffix(".wav" if is_wav else ".mp3")
+                    # Older HTTP caches stored WAV bytes under an .mp3 name.
+                    if target != cached_path:
+                        target.write_bytes(cached_path.read_bytes())
+                else:
+                    target = cached_path
                 return TTSResult(path=target, mime=mime, lang=lang, cached=True)
             try:
                 audio = await self._synthesize(provider, text, voice)
@@ -92,6 +111,9 @@ class TTSService:
             if not audio:
                 last_error = TTSError(f"{provider} 合成失败")
                 continue
+            if provider == "http" and _is_wav(audio):
+                target = target.with_suffix(".wav")
+                mime = "audio/wav"
             target.write_bytes(audio)
             self._maybe_cleanup()
             return TTSResult(path=target, mime=mime, lang=lang)

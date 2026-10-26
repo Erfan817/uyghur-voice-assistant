@@ -33,7 +33,13 @@ class SledEngine:
         self.device = torch.device(
             device or ("cuda" if torch.cuda.is_available() else "cpu")
         )
-        self.dtype = torch.float16 if self.device.type == "cuda" else torch.float32
+        # Match the checkpoint's CUDA inference example. FP16 can overflow in
+        # speech generation; Encodec is initialized separately in FP32 below.
+        self.dtype = (
+            torch.bfloat16
+            if self.device.type == "cuda" and torch.cuda.is_bf16_supported()
+            else torch.float32
+        )
         self.tokenizer = RobertaTokenizer.from_pretrained(str(model_dir))
         self.model = SpeechLlamaForCausalLM.from_pretrained(
             str(model_dir), torch_dtype=self.dtype, attn_implementation="sdpa"
@@ -121,4 +127,6 @@ class SledEngine:
             decoded = self.model.codec.decoder(generated.transpose(-1, -2).float())
             output = decoded[0, 0, prompt_frames * STRIDE :].detach().float().cpu().numpy()
 
+        if output.size == 0 or not np.isfinite(output).all():
+            raise RuntimeError("TTS produced empty or non-finite audio")
         return np.clip(output, -1.0, 1.0)

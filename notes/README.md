@@ -6,6 +6,7 @@
 | 文件 | 内容 |
 |---|---|
 | [decisions.md](decisions.md) | 已定决策（D1–D7）、选型核实记录、成本结构、待定项 |
+| [phone-agent-plan.md](phone-agent-plan.md) | 手机 Agent 新方向、建议架构、候选任务和验收路线（2026-10-26 草案） |
 | [persona.md](persona.md) | Aynur 人设卡（语气 / 记忆 / 兜底 / 问候模板） |
 | [m0-protocol.md](m0-protocol.md) | M0 链路验证协议（T0 文本 → T1 音频，可直接执行） |
 | [icon-prompt.md](icon-prompt.md) | 图标生图提示词与评审清单 |

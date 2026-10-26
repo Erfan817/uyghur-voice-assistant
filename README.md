@@ -20,6 +20,8 @@
 > **ASR 与 TTS 都已本地化**：XLS-R 维语识别（输出阿拉伯字母）+ SLED-TTS 维语合成，都在 RTX 4060 上跑。
 >
 > **当前定位：自用 + 作品集**（[D8](notes/decisions.md)）。家庭部署推迟，不做 24 小时常开与内网穿透。
+>
+> **方向更新（2026-10-26）**：向兼具**维语陪伴、维汉双向翻译与手机办事**能力的 Android Agent 演进，首项执行任务为维语语音拨号；当前实现仍是语音对话原型，独立翻译质量待验收、手机执行能力待开发。见 [路线草案](notes/phone-agent-plan.md)。
 
 <p align="center">
   <img src="notes/img/shot-main.png" width="290" alt="主界面：按住说话">
